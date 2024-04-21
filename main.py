@@ -62,56 +62,56 @@ class Node:
             visited.add(self)
             if self.op == "add":
                 # d/da a+b = 1
-                self.parents[0].backward(1 * self.grad)
+                self.parents[0].backward(1 * self.grad, visited)
 
                 # d/db a+b = 1
-                self.parents[1].backward(1 * self.grad)
+                self.parents[1].backward(1 * self.grad, visited)
             elif self.op == "mul":
                 # d/da a*b = b
-                self.parents[0].backward(self.parents[1].value * self.grad)
+                self.parents[0].backward(self.parents[1].value * self.grad, visited)
 
                 # d/db a*b = a
-                self.parents[1].backward(self.parents[0].value * self.grad)
+                self.parents[1].backward(self.parents[0].value * self.grad, visited)
             elif self.op == "sub":
                 # d/da a-b = 1
-                self.parents[0].backward(1 * self.grad)
+                self.parents[0].backward(1 * self.grad, visited)
 
                 # d/db a-b = -1
-                self.parents[1].backward(-1 * self.grad)
+                self.parents[1].backward(-1 * self.grad, visited)
             elif self.op == "div":
                 # d/da a/b = 1/b
-                self.parents[0].backward((1 / self.parents[1].value) * self.grad)
+                self.parents[0].backward((1 / self.parents[1].value) * self.grad, visited)
 
                 # d/db a/b = -a/b^2
                 self.parents[1].backward(
-                    (-self.parents[0].value / self.parents[1].value ** 2) * self.grad
+                    (-self.parents[0].value / self.parents[1].value ** 2, visited) * self.grad, visited
                 )
             elif self.op == "relu":
                 # d/da relu(a) = 0 if a < 0 else 1
 
-                self.parents[0].backward((1 if self.value > 0 else 0) * self.grad)
+                self.parents[0].backward((1 if self.value > 0 else 0) * self.grad, visited)
             elif self.op == "sigmoid":
                 # d/da sigmoid(a) = d/da 1/(1+e^(-a)) = sigmoid(a) * (1 - sigmoid(a))
-                self.parents[0].backward(self.value * (1 - self.value) * self.grad)
+                self.parents[0].backward(self.value * (1 - self.value) * self.grad, visited)
 
             elif self.op == "neg":
                 # d/da -a = -1
 
-                self.parents[0].backward(-1 * self.grad)
+                self.parents[0].backward(-1 * self.grad, visited)
 
     def zero_grad(self, visited=set()):
         self.grad = 0
         if self not in visited:
             visited.add(self)
             for parent in self.parents:
-                parent.zero_grad()
+                parent.zero_grad(visited)
 
     def step(self, learning_rate, visited=set()):
         self.value -= learning_rate * self.grad
         if self not in visited:
             visited.add(self)
             for parent in self.parents:
-                parent.step(learning_rate)
+                parent.step(learning_rate, visited)
 
     def __str__(self):
         return self.__repr__()
