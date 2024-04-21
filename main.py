@@ -43,6 +43,9 @@ class Node:
 
     def sigmoid(self):
         return Node(value=1 / (1 + math.exp(-self.value)), op="sigmoid", parents=[self])
+    
+    def softmax(self):
+        return Node(value=math.exp(self.value) / sum(math.exp(x.value) for x in self.parents), op="softmax", parents=[self])
 
     def __neg__(self):
         return Node(value=-self.value, op="neg", parents=[self])
@@ -84,16 +87,17 @@ class Node:
 
                 # d/db a/b = -a/b^2
                 self.parents[1].backward(
-                    (-self.parents[0].value / self.parents[1].value ** 2, visited) * self.grad, visited
+                    (-self.parents[0].value / self.parents[1].value ** 2) * self.grad, visited
                 )
             elif self.op == "relu":
                 # d/da relu(a) = 0 if a < 0 else 1
-
                 self.parents[0].backward((1 if self.value > 0 else 0) * self.grad, visited)
             elif self.op == "sigmoid":
                 # d/da sigmoid(a) = d/da 1/(1+e^(-a)) = sigmoid(a) * (1 - sigmoid(a))
                 self.parents[0].backward(self.value * (1 - self.value) * self.grad, visited)
-
+            elif self.op == "softmax":
+                # d/da softmax(a) = e^a / sum(e^a)
+                self.parents[0].backward(self.value * (1 - self.value) * self.grad, visited)
             elif self.op == "neg":
                 # d/da -a = -1
 
@@ -150,6 +154,8 @@ class Neuron:
             return value.relu()
         elif self.activation == "sigmoid":
             return value.sigmoid()
+        elif self.activation == "softmax":
+            return value.softmax()
         else:
             assert False, f"Invalid activation {self.activation}"
 
